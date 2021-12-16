@@ -91,7 +91,9 @@ function update(now)
 									+ "<br/>lat: " + latitude.toFixed(7) + "<br/>long: " + longitude.toFixed(7) 
 									+ "<br/>window: " + scuAtSunrise + "-" + scuAtSunset + "/" + scuPerDay
 									+ "<br/>sunrise: " + calcSunrise.toTimeString().split(" ")[0]
-									+ "<br/>sunset: " + calcSunset.toTimeString().split(" ")[0];
+									+ " (here)"
+									+ "<br/>sunset: " + calcSunset.toTimeString().split(" ")[0]
+									+ " (here)";
 		
 		// day wheel
 		var c = document.getElementById("canvas");
