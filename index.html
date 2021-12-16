@@ -1,0 +1,197 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+	<meta charset="utf-8">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+	<meta name="description" content="an alternative clock base don sunrise/runset">
+	<meta name="HandheldFriendly" content="True">
+	<meta name="MobileOptimized" content="640">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta http-equiv="cleartype" content="on">
+	 	
+	<title>SunClock</title>
+	<script src="suncalc.js"></script>
+	<script src="sunclock.js"></script>
+	<script src="clock.js"></script>
+
+	<link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+  	<link rel="stylesheet" href="http://code.jquery.com/ui/1.11.4/themes/smoothness/jquery-ui.css">
+  	<script src="https://code.jquery.com/jquery-1.12.4.js"></script>
+  	<script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+  	<script>
+  	$( function() {
+	    $( "#datepicker" ).datepicker();
+  	} );
+  	</script>
+  	
+<script>
+
+var		dim = 270;
+var		updateTimerId = null;
+
+function pageLoaded()
+{
+	document.getElementById("scu").innerText = "...";
+
+	if (navigator.geolocation)
+	    navigator.geolocation.getCurrentPosition(showPosition);
+}
+
+function updateLocation()
+{
+	var		value = document.getElementById("location").value;
+	if ( value == "" )
+		pageLoaded();
+	else
+	{
+		var		toks = value.split(",");
+		
+		latitude = parseFloat(toks[0]);
+		longitude = parseFloat(toks[1]);
+		update(getLocationDate());
+	}
+}
+
+
+function showPosition(position)
+{
+	latitude = position.coords.latitude;
+	longitude = position.coords.longitude;
+	update(getLocationDate());
+}
+
+function getLocationDate()
+{
+	var		value = document.getElementById("datepicker").value;
+	
+	var		now = new Date();
+	if ( value != "" )
+	{
+		var		locationNow = new Date(value);
+		
+		now.setFullYear(locationNow.getFullYear());
+		now.setMonth(locationNow.getMonth());
+		now.setDate(locationNow.getDate());
+	}
+	
+	return now;
+}
+
+function update(now)
+{
+	try
+	{
+		var sc = calcSunClockForDate(now);
+		var	scu = calcSunClockDateForSunClock(sc);
+		
+		document.getElementById("scuAtSunrise").innerText = scuAtSunrise;
+		document.getElementById("scuAtSunset").innerText = scuAtSunset;
+		document.getElementById("scu").innerText = scu.toTimeString().split(" ")[0];
+		document.getElementById("info").innerHTML = sc.toFixed(7) 
+									+ "<br/>lat: " + latitude.toFixed(7) + "<br/>long: " + longitude.toFixed(7) 
+									+ "<br/>window: " + scuAtSunrise + "-" + scuAtSunset + "/" + scuPerDay
+									+ "<br/>sunrise: " + calcSunrise.toTimeString().split(" ")[0]
+									+ "<br/>sunset: " + calcSunset.toTimeString().split(" ")[0];
+		
+		// day wheel
+		var c = document.getElementById("canvas");
+		c.width = c.height = 2 * dim;
+		var ctx = c.getContext("2d");
+		ctx.fillStyle = "grey";
+		ctx.lineWidth = 1;
+		ctx.beginPath();
+		ctx.arc(dim, dim, dim - 9, 0, Math.PI);
+		ctx.fill();
+		ctx.beginPath();
+		ctx.arc(dim, dim, dim - 10, Math.PI, 2 * Math.PI);
+		ctx.stroke();
+		
+		// draw current sc
+		if ( sc < 0 )
+			sc += 1;
+		if ( sc <= 0.5 )
+		{
+			ctx.beginPath();
+			ctx.fillStyle = "cyan";
+			ctx.moveTo(dim, dim);
+			ctx.arc(dim, dim, dim - 10, Math.PI, (0.5 + sc) * 2 * Math.PI);
+			ctx.closePath();
+			ctx.fill();				
+		}
+		else
+		{
+			ctx.beginPath();
+			ctx.fillStyle = "pink";
+			ctx.moveTo(dim, dim);
+			ctx.arc(dim, dim, dim - 10, 0, (sc - 0.5) * 2 * Math.PI);
+			ctx.closePath();
+			ctx.fill();	
+		}
+		
+		// draw clock
+		var radius = canvas.height / 2;
+		ctx.translate(radius, radius);
+		radius = radius * 0.90
+		drawClock(ctx, radius, scu);
+									
+		if ( updateTimerId != null )
+			window.clearTimeout(updateTimerId)
+		updateTimerId = window.setTimeout("update(getLocationDate())", 1000);
+	} catch (e) {
+		alert(e);
+	}
+}
+
+function toggle(names)
+{
+	var		toks = names.split(",");
+	for ( var n = 0 ; n < toks.length ; n++ )
+	{
+		var		name = toks[n];
+		var		elem = document.getElementById(name);
+		var		display = elem.style.display;
+		
+		if ( display == "none" )
+			elem.style.display = "";
+		else
+			elem.style.display = "none";
+	}
+		
+}
+</script>
+</head>
+<body onload="pageLoaded()">
+<center>
+	<select id="location" onchange="updateLocation()">
+		<option value="">SunClock (here)</option>
+		<option value="32.046599,34.757761">Tel-Aviv, Israel</option>
+		<option value="0.349077,32.584360">Kampala, Uganda</option>
+		<option value="60.196667,24.937632">Helsinki, Finland</option>
+		<option value="51.518732,-0.129759">London, England</option>
+		<option value="40.712765,-74.015422">New York, NY, USA</option>
+		<option value="-33.865033,151.190118">Sydney, Australia</option>
+	</select>
+	<br/>
+	<input type="text" id="datepicker" placeholder="date" onchange="updateLocation()" style="display:none">
+	
+	<table>
+		<tr>
+			<td width="80" style="text-align:right">
+				<span id="scuAtSunrise" style="display:none"></span>
+			</td>
+			<td>
+				<canvas width="10" height="10" id="canvas" onclick="toggle('info,scuAtSunrise,scuAtSunset,scu')"></canvas>
+			</td>
+			<td width="80" style="text-align:left">
+				<span id="scuAtSunset" style="display:none"></span>
+			</td>
+		</tr>
+	</table>
+	<span style="font-size:120pt;display:none" id="scu"></span><br/>
+	<p id="info" style="display:none"></p>
+	<p>
+		(c) Copyright 2014-2021 Dror Kessler<br/>
+		<a href="https://github.com/mourner/suncalc/blob/master/LICENSE">suncalc license</a>
+</center>
+</body>
+</html>
